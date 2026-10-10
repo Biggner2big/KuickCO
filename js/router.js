@@ -17,6 +17,8 @@ import { renderSettings } from './client/settings.js';
 import { renderCustomerDashboard } from './customer/dashboard.js';
 import { renderCustomerOrders } from './customer/orders.js';
 import { renderTrackingView } from './customer/tracking.js';
+import { renderAdminDashboard } from './admin/dashboard.js';
+import { renderAdminClients } from './admin/clients.js';
 import { escapeHTML } from './shared/utils.js';
 
 export function handleRoute() {
@@ -68,8 +70,16 @@ export function handleRoute() {
   const [routePath, queryString] = hash.split('?');
   const queryParams = new URLSearchParams(queryString || '');
 
-  // Client Portal Routes
-  if (routePath === '#/client/dashboard') {
+  // Admin Routes (Courier Management Operations)
+  if (routePath === '#/admin/dashboard' || routePath === '#/admin/orders') {
+    setActiveNav('nav-adm-dashboard');
+    renderAdminDashboard(viewContainer);
+  } else if (routePath === '#/admin/clients') {
+    setActiveNav('nav-adm-clients');
+    renderAdminClients(viewContainer);
+  }
+  // Client Portal Routes (Merchants & Shippers)
+  else if (routePath === '#/client/dashboard') {
     setActiveNav('nav-client-dashboard');
     renderClientDashboard(viewContainer);
   } else if (routePath === '#/client/create') {
@@ -120,9 +130,11 @@ export function handleRoute() {
   }
 }
 
-function redirectToRoleDashboard(role) {
+export function redirectToRoleDashboard(role) {
   if (role === 'customer') {
     window.location.hash = '#/customer/dashboard';
+  } else if (role === 'admin') {
+    window.location.hash = '#/admin/dashboard';
   } else {
     window.location.hash = '#/client/dashboard';
   }
@@ -166,7 +178,16 @@ function renderAppShell(container, profile) {
         </div>
 
         <nav class="sidebar-nav">
-          ${role === 'customer' ? `
+          ${role === 'admin' ? `
+            <div class="nav-section-title">Courier Management</div>
+            <a href="#/admin/dashboard" class="nav-item" id="nav-adm-dashboard">🏢 All Client Bookings</a>
+            <a href="#/admin/clients" class="nav-item" id="nav-adm-clients">👥 Client Merchants</a>
+            
+            <div class="nav-section-title">Operational Tools</div>
+            <a href="#/client/labels" class="nav-item" id="nav-client-labels">🏷️ Barcode Labels</a>
+            <a href="#/client/awb" class="nav-item" id="nav-client-awb">📄 Print AWB (3x)</a>
+            <a href="#/track" class="nav-item">🔍 Public Tracker</a>
+          ` : role === 'customer' ? `
             <div class="nav-section-title">Customer Services</div>
             <a href="#/customer/dashboard" class="nav-item" id="nav-cust-dashboard">📊 Dashboard</a>
             <a href="#/customer/track" class="nav-item" id="nav-cust-track">🔍 Live Tracking</a>
@@ -217,7 +238,7 @@ function renderAppShell(container, profile) {
           </div>
           <div class="header-actions">
             <button class="btn btn-secondary btn-sm" onclick="window.location.hash='#/track'">Live Tracker</button>
-            <button class="btn btn-primary btn-sm" onclick="window.location.hash='#/client/create'">+ New Order</button>
+            ${role === 'client' ? `<button class="btn btn-primary btn-sm" onclick="window.location.hash='#/client/create'">+ New Order</button>` : ''}
           </div>
         </header>
 

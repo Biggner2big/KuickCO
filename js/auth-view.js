@@ -98,7 +98,7 @@ export function routeByRole(role) {
   if (role === 'customer') {
     window.location.hash = '#/customer/dashboard';
   } else if (role === 'admin') {
-    window.location.hash = '#/client/dashboard';
+    window.location.hash = '#/admin/dashboard';
   } else {
     window.location.hash = '#/client/dashboard';
   }
