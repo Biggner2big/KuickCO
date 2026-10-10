@@ -5,6 +5,7 @@
 import { supabase } from '../supabase-client.js';
 import { getCurrentProfile, getCurrentUser } from '../auth.js';
 import { formatPKR, formatDate, getStatusBadge, escapeHTML } from '../shared/utils.js';
+import { fetchAllBookings } from '../shared/data-store.js';
 
 export async function renderCustomerOrders(container) {
   const profile = getCurrentProfile();
@@ -47,17 +48,7 @@ export async function renderCustomerOrders(container) {
   `;
 
   try {
-    let query = supabase
-      .from('bookings')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (profile?.id) {
-      query = query.or(`customer_id.eq.${profile.id},receiver_email.eq.${user?.email}`);
-    }
-
-    const { data: orders, error } = await query;
-    if (error) throw error;
+    const orders = await fetchAllBookings();
 
     const tbody = document.getElementById('cust-history-tbody');
     if (!orders || orders.length === 0) {

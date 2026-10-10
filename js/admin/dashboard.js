@@ -5,6 +5,7 @@
 import { supabase } from '../supabase-client.js';
 import { CONFIG } from '../config.js';
 import { formatPKR, formatDate, getStatusBadge, showToast, escapeHTML } from '../shared/utils.js';
+import { fetchAllBookings, updateBookingStatus, logTrackingEvent } from '../shared/data-store.js';
 
 let cachedAdminOrders = [];
 let cachedClientsList = [];
@@ -203,13 +204,8 @@ async function loadAdminData() {
         cachedClientsList.map(c => `<option value="${c.id}">${escapeHTML(c.company_name || c.full_name || c.email)}</option>`).join('');
     }
 
-    // 2. Fetch all bookings with client profile mapping
-    const { data: bookings, error } = await supabase
-      .from('bookings')
-      .select('*, client:client_id(company_name, full_name, email, phone)')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
+    // 2. Fetch all bookings across all clients
+    const bookings = await fetchAllBookings();
     cachedAdminOrders = bookings || [];
 
     // 3. Update Master Metrics
@@ -324,25 +320,14 @@ async function saveAdminStatusChange() {
   const note = document.getElementById('adm-note').value.trim() || `Status updated to ${newStatus}`;
 
   try {
-    // 1. Update Booking
-    const { error: updErr } = await supabase
-      .from('bookings')
-      .update({
-        status: newStatus,
-        cod_status: newStatus === 'Delivered' ? 'collected' : 'pending'
-      })
-      .eq('id', id);
-
-    if (updErr) throw updErr;
-
-    // 2. Insert Tracking Event
-    await supabase.from('tracking_events').insert([{
+    await updateBookingStatus(id, tn, newStatus);
+    await logTrackingEvent({
       booking_id: id,
       tracking_number: tn,
       status: newStatus,
       location: loc,
       note: note
-    }]);
+    });
 
     showToast(`Status updated to ${newStatus} for ${tn}`, 'success');
     document.getElementById('adm-status-modal').classList.remove('open');

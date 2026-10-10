@@ -5,6 +5,7 @@
 import { supabase } from '../supabase-client.js';
 import { getCurrentProfile } from '../auth.js';
 import { formatPKR, formatDate, getStatusBadge, escapeHTML } from '../shared/utils.js';
+import { fetchAllBookings } from '../shared/data-store.js';
 
 export async function renderClientDashboard(container) {
   const profile = getCurrentProfile();
@@ -117,13 +118,7 @@ async function loadDashboardData(clientId) {
   if (!clientId) return;
 
   try {
-    const { data: orders, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('client_id', clientId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
+    const orders = await fetchAllBookings(clientId);
 
     const total = orders.length;
     const delivered = orders.filter(o => o.status === 'Delivered').length;

@@ -6,6 +6,7 @@ import { supabase } from '../supabase-client.js';
 import { getCurrentProfile } from '../auth.js';
 import { CONFIG } from '../config.js';
 import { formatPKR, formatDate, getStatusBadge, showToast, escapeHTML } from '../shared/utils.js';
+import { fetchAllBookings, updateBookingStatus, deleteBooking, logTrackingEvent } from '../shared/data-store.js';
 
 let cachedOrders = [];
 let realtimeChannel = null;
@@ -151,18 +152,10 @@ export async function renderClientOrders(container) {
 async function fetchOrders(clientId) {
   if (!clientId) return;
   try {
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('client_id', clientId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    cachedOrders = data || [];
+    cachedOrders = await fetchAllBookings(clientId);
     applyFilters();
   } catch (err) {
     console.error("fetchOrders error:", err);
-    showToast(err.message || 'Error loading orders', 'error');
   }
 }
 
@@ -272,22 +265,14 @@ async function saveStatusChange() {
   const note = document.getElementById('modal-note').value.trim() || `Status updated to ${newStatus}`;
 
   try {
-    // 1. Update Booking
-    const { error: updErr } = await supabase
-      .from('bookings')
-      .update({ status: newStatus })
-      .eq('id', id);
-
-    if (updErr) throw updErr;
-
-    // 2. Insert Tracking Event
-    await supabase.from('tracking_events').insert([{
+    await updateBookingStatus(id, tn, newStatus);
+    await logTrackingEvent({
       booking_id: id,
       tracking_number: tn,
       status: newStatus,
       location: loc,
       note: note
-    }]);
+    });
 
     showToast(`Status updated to ${newStatus} for ${tn}`, 'success');
     document.getElementById('status-modal').classList.remove('open');
@@ -300,8 +285,7 @@ async function saveStatusChange() {
 window.deleteOrder = async (id) => {
   if (!confirm("Are you sure you want to cancel and delete this booked order?")) return;
   try {
-    const { error } = await supabase.from('bookings').delete().eq('id', id);
-    if (error) throw error;
+    await deleteBooking(id);
     showToast("Order removed", "info");
     fetchOrders(getCurrentProfile()?.id);
   } catch (err) {

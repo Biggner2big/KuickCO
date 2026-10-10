@@ -7,6 +7,7 @@ import { getCurrentProfile } from '../auth.js';
 import { CONFIG } from '../config.js';
 import { showToast, generateClientTrackingNumber, escapeHTML } from '../shared/utils.js';
 import { renderBarcode } from '../shared/barcode.js';
+import { insertBooking, logTrackingEvent } from '../shared/data-store.js';
 
 export async function renderCreateOrder(container) {
   const profile = getCurrentProfile();
@@ -235,23 +236,17 @@ async function handleCreateOrderSubmit(clientId) {
     source: 'manual'
   };
 
-  // 2. Insert Booking
-  const { data: booking, error: insertErr } = await supabase
-    .from('bookings')
-    .insert([newBooking])
-    .select()
-    .single();
-
-  if (insertErr) throw insertErr;
+  // 2. Insert Booking via Data Store
+  const booking = await insertBooking(newBooking);
 
   // 3. Insert Initial Tracking Event
-  await supabase.from('tracking_events').insert([{
+  await logTrackingEvent({
     booking_id: booking.id,
     tracking_number: trackingNumber,
     status: 'Booked',
     location: newBooking.sender_city,
     note: 'Shipment created and registered in system'
-  }]).catch(e => console.warn("Notice inserting event:", e));
+  });
 
   showToast(`Order created successfully! Tracking: ${trackingNumber}`, 'success');
 

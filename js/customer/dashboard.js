@@ -5,6 +5,7 @@
 import { supabase } from '../supabase-client.js';
 import { getCurrentProfile, getCurrentUser } from '../auth.js';
 import { formatPKR, formatDate, getStatusBadge, escapeHTML } from '../shared/utils.js';
+import { fetchAllBookings } from '../shared/data-store.js';
 
 export async function renderCustomerDashboard(container) {
   const profile = getCurrentProfile();
@@ -94,19 +95,7 @@ export async function renderCustomerDashboard(container) {
 }
 
 async function loadCustomerOrders(profileId, email) {
-  try {
-    let query = supabase
-      .from('bookings')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (profileId) {
-      query = query.or(`customer_id.eq.${profileId},receiver_email.eq.${email}`);
-    }
-
-    const { data: orders, error } = await query;
-    if (error) throw error;
-
+    const orders = await fetchAllBookings();
     const myOrders = orders || [];
     const incoming = myOrders.filter(o => ['Booked', 'Picked Up', 'In Transit', 'Out For Delivery'].includes(o.status)).length;
     const delivered = myOrders.filter(o => o.status === 'Delivered').length;

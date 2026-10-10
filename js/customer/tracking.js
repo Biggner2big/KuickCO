@@ -6,6 +6,7 @@ import { supabase } from '../supabase-client.js';
 import { CONFIG } from '../config.js';
 import { formatPKR, formatDate, formatDateTime, getStatusBadge, showToast, escapeHTML } from '../shared/utils.js';
 import { renderBarcode, renderQRCode } from '../shared/barcode.js';
+import { getShipmentByTrackingNumber } from '../shared/data-store.js';
 
 let activeRealtimeSub = null;
 
@@ -59,14 +60,9 @@ async function loadShipmentTimeline(trackingNumber) {
   if (!resultArea) return;
 
   try {
-    // 1. Fetch booking record
-    const { data: booking, error: bErr } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('tracking_number', trackingNumber)
-      .single();
+    const { booking, events } = await getShipmentByTrackingNumber(trackingNumber);
 
-    if (bErr || !booking) {
+    if (!booking) {
       resultArea.innerHTML = `
         <div class="card" style="text-align: center; padding: 40px;">
           <div style="font-size: 40px; margin-bottom: 12px;">⚠️</div>
@@ -76,13 +72,6 @@ async function loadShipmentTimeline(trackingNumber) {
       `;
       return;
     }
-
-    // 2. Fetch tracking events
-    const { data: events, error: eErr } = await supabase
-      .from('tracking_events')
-      .select('*')
-      .eq('tracking_number', trackingNumber)
-      .order('created_at', { ascending: false });
 
     renderShipmentDetails(booking, events || []);
     setupRealtimeTracking(booking.tracking_number);
