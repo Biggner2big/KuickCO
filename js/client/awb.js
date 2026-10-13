@@ -6,6 +6,7 @@ import { supabase } from '../supabase-client.js';
 import { getCurrentProfile } from '../auth.js';
 import { formatPKR, formatDate, escapeHTML } from '../shared/utils.js';
 import { renderBarcode, renderQRCode } from '../shared/barcode.js';
+import { fetchBookingsByTrackingNumbers } from '../shared/data-store.js';
 
 export async function renderAirWaybills(container, trackingNumbers = []) {
   const profile = getCurrentProfile();
@@ -13,12 +14,16 @@ export async function renderAirWaybills(container, trackingNumbers = []) {
   // Fetch client settings for copies and branding
   let settings = null;
   if (profile?.id) {
-    const { data } = await supabase
-      .from('client_settings')
-      .select('*')
-      .eq('client_id', profile.id)
-      .single();
-    settings = data;
+    try {
+      const { data } = await supabase
+        .from('client_settings')
+        .select('*')
+        .eq('client_id', profile.id)
+        .single();
+      settings = data;
+    } catch (e) {
+      // ignore
+    }
   }
 
   const awbCopies = settings?.awb_copies || 1;
@@ -53,12 +58,17 @@ export async function renderAirWaybills(container, trackingNumbers = []) {
   }
 
   try {
-    const { data: bookings, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .in('tracking_number', trackingNumbers);
+    const bookings = await fetchBookingsByTrackingNumbers(trackingNumbers);
 
-    if (error) throw error;
+    if (!bookings || bookings.length === 0) {
+      document.getElementById('awb-render-area').innerHTML = `
+        <div class="card" style="padding: 32px; text-align: center;">
+          <p>No booking details found for the selected tracking numbers.</p>
+          <a href="#/client/orders" class="btn btn-primary" style="margin-top: 12px;">Return to Orders</a>
+        </div>
+      `;
+      return;
+    }
 
     // Generate AWBs based on copies setting
     const renderArea = document.getElementById('awb-render-area');

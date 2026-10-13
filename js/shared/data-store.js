@@ -138,6 +138,29 @@ export async function fetchAllBookings(clientId = null) {
   }
 }
 
+export async function fetchBookingsByTrackingNumbers(tns = []) {
+  if (!tns || tns.length === 0) return [];
+  const cleanTns = tns.map(t => String(t).trim().toLowerCase());
+
+  try {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .in('tracking_number', tns);
+
+    if (error) {
+      const all = getLocalBookings();
+      return all.filter(b => cleanTns.includes(String(b.tracking_number).toLowerCase()));
+    }
+    if (data && data.length > 0) return data;
+  } catch (err) {
+    console.warn("fetchBookingsByTrackingNumbers notice:", err.message);
+  }
+
+  const all = getLocalBookings();
+  return all.filter(b => cleanTns.includes(String(b.tracking_number).toLowerCase()));
+}
+
 export async function insertBooking(bookingObj) {
   try {
     const { data, error } = await supabase.from('bookings').insert([bookingObj]).select().single();

@@ -95,6 +95,7 @@ export async function renderCustomerDashboard(container) {
 }
 
 async function loadCustomerOrders(profileId, email) {
+  try {
     const orders = await fetchAllBookings();
     const myOrders = orders || [];
     const incoming = myOrders.filter(o => ['Booked', 'Picked Up', 'In Transit', 'Out For Delivery'].includes(o.status)).length;

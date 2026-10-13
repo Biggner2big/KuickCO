@@ -2,7 +2,7 @@
 // QuickCO Admin Portal — Client Merchants Directory
 // ============================================================================
 
-import { supabase } from '../supabase-client.js';
+import { getAllClients } from '../auth.js';
 import { formatDate, escapeHTML } from '../shared/utils.js';
 
 export async function renderAdminClients(container) {
@@ -44,13 +44,7 @@ export async function renderAdminClients(container) {
   `;
 
   try {
-    const { data: clients, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('role', 'client')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
+    const clients = await getAllClients();
 
     const tbody = document.getElementById('adm-clients-tbody');
     if (!clients || clients.length === 0) {

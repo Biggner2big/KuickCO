@@ -5,6 +5,7 @@
 import { supabase } from '../supabase-client.js';
 import { getCurrentProfile } from '../auth.js';
 import { formatPKR, formatDate, escapeHTML } from '../shared/utils.js';
+import { fetchBookingsByTrackingNumbers } from '../shared/data-store.js';
 
 export async function renderLoadsheet(container, trackingNumbers = []) {
   const profile = getCurrentProfile();
@@ -39,13 +40,18 @@ export async function renderLoadsheet(container, trackingNumbers = []) {
   }
 
   try {
-    const { data: bookings, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .in('tracking_number', trackingNumbers)
-      .order('created_at', { ascending: false });
+    const bookings = await fetchBookingsByTrackingNumbers(trackingNumbers);
 
-    if (error) throw error;
+    if (!bookings || bookings.length === 0) {
+      document.getElementById('loadsheet-content').innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+          <p>No parcel details found for the selected tracking numbers.</p>
+          <a href="#/client/orders" class="btn btn-primary" style="margin-top: 12px;">Go to Orders</a>
+        </div>
+      `;
+      return;
+    }
+
 
     const totalWeight = bookings.reduce((sum, b) => sum + (Number(b.weight) || 0), 0);
     const totalCod = bookings.reduce((sum, b) => sum + (Number(b.cod_amount) || 0), 0);

@@ -57,16 +57,20 @@ No build step or node package manager required:
    ```
 2. Serve using any local web server (e.g. Python or VS Code Live Server):
    ```bash
-   python -m http.server 8000
+   python -m http.server 3000
    ```
-3. Open `http://localhost:8000` in your web browser.
+3. Open `http://localhost:3000` in your web browser.
 
 ---
 
-## 🔐 Default Demo Accounts
+## 🔐 Portal Authentication & Credentials
 
-| Role | Email | Password |
-|---|---|---|
-| **Client / Merchant** | `client@quickco.pk` | `client123` |
-| **Customer** | `customer@quickco.pk` | `customer123` |
-| **Administrator** | `admin@quickco.pk` | `admin123` |
+### 👑 System Administrator (Default Master Account)
+- **Username / Email:** `admin@quickco.pk` *(or simply `admin`)*
+- **Password:** `admin123`
+- **Role:** Administrator (Courier Operations Central Hub)
+
+### 🏢 Merchant (Client) Self-Registration
+- New merchants register directly via the **Merchant Register** tab (`#/register`).
+- Includes business name, contact info, city, and **6-digit email verification OTP**.
+- Upon verification, clients can sign in anytime with their own registered email and password.

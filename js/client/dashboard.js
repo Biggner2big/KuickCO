@@ -7,6 +7,9 @@ import { getCurrentProfile } from '../auth.js';
 import { formatPKR, formatDate, getStatusBadge, escapeHTML } from '../shared/utils.js';
 import { fetchAllBookings } from '../shared/data-store.js';
 
+let statusChartInstance = null;
+let velocityChartInstance = null;
+
 export async function renderClientDashboard(container) {
   const profile = getCurrentProfile();
   
@@ -110,9 +113,6 @@ export async function renderClientDashboard(container) {
   document.getElementById('btn-refresh-dash')?.addEventListener('click', () => loadDashboardData(profile?.id));
   await loadDashboardData(profile?.id);
 }
-
-let velocityChartInstance = null;
-let statusChartInstance = null;
 
 async function loadDashboardData(clientId) {
   if (!clientId) return;

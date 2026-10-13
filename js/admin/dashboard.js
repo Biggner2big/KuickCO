@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { supabase } from '../supabase-client.js';
+import { getAllClients } from '../auth.js';
 import { CONFIG } from '../config.js';
 import { formatPKR, formatDate, getStatusBadge, showToast, escapeHTML } from '../shared/utils.js';
 import { fetchAllBookings, updateBookingStatus, logTrackingEvent } from '../shared/data-store.js';
@@ -20,7 +21,7 @@ export async function renderAdminDashboard(container) {
         </div>
         <div style="display: flex; gap: 10px;">
           <button class="btn btn-secondary" id="btn-admin-refresh">🔄 Refresh Hub</button>
-          <a href="#/admin/dispatch" class="btn btn-primary">🚚 Quick Hub Dispatch</a>
+          <button class="btn btn-primary" id="btn-admin-dispatch">🚚 Quick Hub Dispatch</button>
         </div>
       </div>
 
@@ -170,6 +171,14 @@ export async function renderAdminDashboard(container) {
   `;
 
   document.getElementById('btn-admin-refresh')?.addEventListener('click', loadAdminData);
+  document.getElementById('btn-admin-dispatch')?.addEventListener('click', () => {
+    const pending = cachedAdminOrders.find(b => b.status === 'Booked' || b.status === 'Picked Up' || b.status === 'In Transit');
+    if (pending) {
+      window.openAdminStatusModal(pending.id, pending.tracking_number, pending.status, pending.client?.company_name || 'Merchant');
+    } else {
+      showToast("No active shipments currently awaiting dispatch.", "info");
+    }
+  });
   document.getElementById('adm-search')?.addEventListener('input', applyAdminFilters);
   document.getElementById('adm-filter-client')?.addEventListener('change', applyAdminFilters);
   document.getElementById('adm-filter-status')?.addEventListener('change', applyAdminFilters);
@@ -190,12 +199,7 @@ export async function renderAdminDashboard(container) {
 async function loadAdminData() {
   try {
     // 1. Fetch all clients
-    const { data: clients } = await supabase
-      .from('profiles')
-      .select('id, company_name, full_name, email, city, phone')
-      .eq('role', 'client');
-
-    cachedClientsList = clients || [];
+    cachedClientsList = await getAllClients();
 
     // Populate client filter dropdown
     const clientSelect = document.getElementById('adm-filter-client');

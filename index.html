@@ -11,6 +11,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%231e6b3e%22/><text y=%2270%22 x=%2225%22 font-size=%2265%22 font-family=%22sans-serif%22 font-weight=%22bold%22 fill=%22white%22>Q</text></svg>">
+
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/print.css">
@@ -52,5 +55,50 @@
 
   <!-- Master Application Script -->
   <script type="module" src="js/app.js"></script>
+
+  <!-- Fallback & Protocol Verification Script -->
+  <script>
+    (function() {
+      // 1. Detect if opened directly via file:// protocol
+      if (window.location.protocol === 'file:') {
+        var app = document.getElementById('app');
+        if (app) {
+          app.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; font-family: 'Inter', system-ui, sans-serif; background: #f8fafc;">
+              <div style="background: white; border-radius: 16px; padding: 36px 32px; max-width: 540px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; border: 1px solid #e2e8f0;">
+                <div style="width: 56px; height: 56px; background: #fef2f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 26px;">
+                  ⚠️
+                </div>
+                <h2 style="color: #0f172a; font-size: 20px; font-weight: 800; margin: 0 0 10px;">Direct File Protocol Detected (file://)</h2>
+                <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 20px;">
+                  Aap ne file direct open ki hai (<code>file:///</code>). Modern browsers security reasons ki wajah se direct file me JavaScript Modules block kar dete hain, is wajah se loading screen par ruk jati hai.
+                </p>
+                <div style="background: #f1f5f9; border-radius: 12px; padding: 18px; text-align: left; margin-bottom: 22px; font-size: 13px; color: #1e293b;">
+                  <div style="font-weight: 700; margin-bottom: 8px; color: #1e6b3e;">Chalanay ka asaan tareeqa:</div>
+                  <ol style="margin: 0; padding-left: 20px; line-height: 1.8;">
+                    <li>Folder me mojood <b><code>run.bat</code></b> par double-click karein.</li>
+                    <li>Ya terminal me <b><code>python -m http.server 3000</code></b> chalayein.</li>
+                    <li>Aur browser me <b><a href="http://localhost:3000" style="color: #1e6b3e; font-weight: 700;">http://localhost:3000</a></b> open karein.</li>
+                  </ol>
+                </div>
+                <a href="http://localhost:3000" style="display: inline-block; background: #1e6b3e; color: white; padding: 12px 28px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 14px; box-shadow: 0 4px 12px rgba(30,107,62,0.25);">Open http://localhost:3000</a>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      // 2. Timeout safeguard if loading hangs unexpectedly
+      setTimeout(function() {
+        var app = document.getElementById('app');
+        if (app && app.querySelector('h3') && app.querySelector('h3').textContent.indexOf('Loading QuickCO') !== -1) {
+          var p = app.querySelector('p');
+          if (p) {
+            p.innerHTML = 'Still loading? Agar screen nahi badal rahi to <a href="http://localhost:3000" style="color: #1e6b3e; font-weight: 700; text-decoration: underline;">http://localhost:3000</a> par check karein ya refresh karein.';
+          }
+        }
+      }, 5000);
+    })();
+  </script>
 </body>
 </html>

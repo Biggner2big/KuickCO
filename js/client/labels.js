@@ -6,6 +6,7 @@ import { supabase } from '../supabase-client.js';
 import { getCurrentProfile } from '../auth.js';
 import { formatPKR, formatDate, escapeHTML } from '../shared/utils.js';
 import { renderBarcode } from '../shared/barcode.js';
+import { fetchBookingsByTrackingNumbers } from '../shared/data-store.js';
 
 export async function renderBarcodeLabels(container, trackingNumbers = []) {
   const profile = getCurrentProfile();
@@ -47,12 +48,17 @@ export async function renderBarcodeLabels(container, trackingNumbers = []) {
   }
 
   try {
-    const { data: bookings, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .in('tracking_number', trackingNumbers);
+    const bookings = await fetchBookingsByTrackingNumbers(trackingNumbers);
 
-    if (error) throw error;
+    if (!bookings || bookings.length === 0) {
+      document.getElementById('labels-render-area').innerHTML = `
+        <div class="card" style="padding: 32px; text-align: center;">
+          <p>No booking details found for the selected tracking numbers.</p>
+          <a href="#/client/orders" class="btn btn-primary" style="margin-top: 12px;">Return to Orders</a>
+        </div>
+      `;
+      return;
+    }
 
     const renderArea = document.getElementById('labels-render-area');
     renderArea.innerHTML = bookings.map((b, idx) => `

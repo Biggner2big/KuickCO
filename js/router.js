@@ -14,9 +14,14 @@ import { renderShopifyImport } from './client/shopify.js';
 import { renderBulkImport } from './client/bulk.js';
 import { renderReports } from './client/reports.js';
 import { renderSettings } from './client/settings.js';
+import { renderClientSupport } from './client/support.js';
 import { renderCustomerDashboard } from './customer/dashboard.js';
 import { renderCustomerOrders } from './customer/orders.js';
 import { renderTrackingView } from './customer/tracking.js';
+import { renderCustomerPreferences } from './customer/preferences.js';
+import { renderCustomerInvoices } from './customer/invoices.js';
+import { renderCustomerSupport } from './customer/support.js';
+import { renderCustomerProfile } from './customer/profile.js';
 import { renderAdminDashboard } from './admin/dashboard.js';
 import { renderAdminClients } from './admin/clients.js';
 import { escapeHTML } from './shared/utils.js';
@@ -38,12 +43,17 @@ export function handleRoute() {
     return;
   }
 
+  if (hash === '#/forgot-password') {
+    renderAuthView(appEl, 'forgot');
+    return;
+  }
+
   if (hash === '#/login' || hash === '' || hash === '#/') {
     if (user) {
       redirectToRoleDashboard(role);
       return;
     }
-    renderAuthView(appEl, false);
+    renderAuthView(appEl, 'login');
     return;
   }
 
@@ -52,7 +62,16 @@ export function handleRoute() {
       redirectToRoleDashboard(role);
       return;
     }
-    renderAuthView(appEl, true);
+    renderAuthView(appEl, 'register');
+    return;
+  }
+
+  if (hash === '#/otp' || hash === '#/verify-otp') {
+    if (user) {
+      redirectToRoleDashboard(role);
+      return;
+    }
+    renderAuthView(appEl, 'otp');
     return;
   }
 
@@ -71,7 +90,7 @@ export function handleRoute() {
   const queryParams = new URLSearchParams(queryString || '');
 
   // Admin Routes (Courier Management Operations)
-  if (routePath === '#/admin/dashboard' || routePath === '#/admin/orders') {
+  if (routePath === '#/admin/dashboard' || routePath === '#/admin/orders' || routePath === '#/admin/dispatch') {
     setActiveNav('nav-adm-dashboard');
     renderAdminDashboard(viewContainer);
   } else if (routePath === '#/admin/clients') {
@@ -112,6 +131,9 @@ export function handleRoute() {
   } else if (routePath === '#/client/settings') {
     setActiveNav('nav-client-settings');
     renderSettings(viewContainer);
+  } else if (routePath === '#/client/support') {
+    setActiveNav('nav-client-support');
+    renderClientSupport(viewContainer);
   } 
   // Customer Portal Routes
   else if (routePath === '#/customer/dashboard') {
@@ -124,6 +146,18 @@ export function handleRoute() {
     setActiveNav('nav-cust-track');
     const tn = queryParams.get('tn') || '';
     renderTrackingView(viewContainer, tn);
+  } else if (routePath === '#/customer/preferences') {
+    setActiveNav('nav-cust-prefs');
+    renderCustomerPreferences(viewContainer);
+  } else if (routePath === '#/customer/invoices') {
+    setActiveNav('nav-cust-invoices');
+    renderCustomerInvoices(viewContainer);
+  } else if (routePath === '#/customer/support') {
+    setActiveNav('nav-cust-support');
+    renderCustomerSupport(viewContainer);
+  } else if (routePath === '#/customer/profile') {
+    setActiveNav('nav-cust-profile');
+    renderCustomerProfile(viewContainer);
   } else {
     // Fallback
     redirectToRoleDashboard(role);
@@ -167,6 +201,9 @@ function renderAppShell(container, profile) {
 
   container.innerHTML = `
     <div id="app-shell-root" style="display: flex; width: 100%;">
+      <!-- Mobile Backdrop -->
+      <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
       <!-- Sidebar -->
       <aside class="app-sidebar" id="app-sidebar">
         <div class="sidebar-brand">
@@ -192,6 +229,10 @@ function renderAppShell(container, profile) {
             <a href="#/customer/dashboard" class="nav-item" id="nav-cust-dashboard">📊 Dashboard</a>
             <a href="#/customer/track" class="nav-item" id="nav-cust-track">🔍 Live Tracking</a>
             <a href="#/customer/orders" class="nav-item" id="nav-cust-orders">📦 My Orders</a>
+            <a href="#/customer/invoices" class="nav-item" id="nav-cust-invoices">🧾 Receipts & Invoices</a>
+            <a href="#/customer/preferences" class="nav-item" id="nav-cust-prefs">⚙️ Delivery Preferences</a>
+            <a href="#/customer/support" class="nav-item" id="nav-cust-support">💬 Help Desk</a>
+            <a href="#/customer/profile" class="nav-item" id="nav-cust-profile">👤 Account Profile</a>
           ` : `
             <div class="nav-section-title">Operations</div>
             <a href="#/client/dashboard" class="nav-item" id="nav-client-dashboard">📊 Dashboard</a>
@@ -209,8 +250,9 @@ function renderAppShell(container, profile) {
             <a href="#/client/bulk" class="nav-item" id="nav-client-bulk">📊 Bulk CSV Import</a>
             <a href="#/client/reports" class="nav-item" id="nav-client-reports">📈 Financial Reports</a>
 
-            <div class="nav-section-title">Configuration</div>
+            <div class="nav-section-title">Configuration & Help</div>
             <a href="#/client/settings" class="nav-item" id="nav-client-settings">⚙️ Shipper Settings</a>
+            <a href="#/client/support" class="nav-item" id="nav-client-support">🎧 Merchant Support</a>
           `}
         </nav>
 
@@ -247,10 +289,36 @@ function renderAppShell(container, profile) {
     </div>
   `;
 
+
   document.getElementById('btn-shell-logout')?.addEventListener('click', signOut);
+
+  // Mobile sidebar toggle & auto-dismiss
+  const toggleBtn = document.getElementById('btn-toggle-sidebar');
+  const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+
+  const closeSidebar = () => {
+    sidebar?.classList.remove('open');
+    backdrop?.classList.remove('active');
+  };
+
+  toggleBtn?.addEventListener('click', () => {
+    const isOpen = sidebar?.classList.toggle('open');
+    if (isOpen) {
+      backdrop?.classList.add('active');
+    } else {
+      backdrop?.classList.remove('active');
+    }
+  });
+
+  backdrop?.addEventListener('click', closeSidebar);
+  sidebar?.querySelectorAll('.nav-item').forEach(link => {
+    link.addEventListener('click', closeSidebar);
+  });
 }
 
 function setActiveNav(navId) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById(navId)?.classList.add('active');
 }
+
